@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Teams;
 
-use App\Enums\TeamRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Teams\AcceptTeamInvitationRequest;
 use App\Http\Requests\Teams\CreateTeamInvitationRequest;
@@ -14,19 +13,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
+use Spatie\Permission\Models\Role;
 
 class TeamInvitationController extends Controller
 {
-    /**
-     * Store a newly created invitation.
-     */
     public function store(CreateTeamInvitationRequest $request, Team $team): RedirectResponse
     {
         Gate::authorize('inviteMember', $team);
 
         $invitation = $team->invitations()->create([
             'email' => $request->validated('email'),
-            'role' => TeamRole::from($request->validated('role')),
+            'role' => $request->validated('role'),
             'invited_by' => $request->user()->id,
             'expires_at' => now()->addDays(3),
         ]);
@@ -39,9 +36,6 @@ class TeamInvitationController extends Controller
         return to_route('teams.edit', ['team' => $team->slug]);
     }
 
-    /**
-     * Cancel the specified invitation.
-     */
     public function destroy(Team $team, TeamInvitation $invitation): RedirectResponse
     {
         abort_unless($invitation->team_id === $team->id, 404);
@@ -55,9 +49,6 @@ class TeamInvitationController extends Controller
         return to_route('teams.edit', ['team' => $team->slug]);
     }
 
-    /**
-     * Accept the invitation.
-     */
     public function accept(AcceptTeamInvitationRequest $request, TeamInvitation $invitation): RedirectResponse
     {
         $user = $request->user();
@@ -69,6 +60,14 @@ class TeamInvitationController extends Controller
                 ['user_id' => $user->id],
                 ['role' => $invitation->role],
             );
+
+            // Assign Spatie role scoped to the team, creating it if it doesn't exist
+            $spatieRole = Role::firstOrCreate(
+                ['name' => $invitation->role, 'team_id' => $team->id],
+                ['guard_name' => 'web']
+            );
+
+            $user->assignRole($spatieRole);
 
             $invitation->update(['accepted_at' => now()]);
 

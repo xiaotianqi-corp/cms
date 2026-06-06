@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import { BookOpen, FolderGit2, LayoutGrid, FileText, ShoppingBag, CreditCard, Palette, Puzzle, Settings, BarChart3, Sparkles } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -28,6 +28,51 @@ export function AppSidebar() {
             title: 'Dashboard',
             href: dashboardUrl,
             icon: LayoutGrid,
+        },
+        {
+            title: 'Posts',
+            href: '/admin/posts',
+            icon: BookOpen,
+        },
+        {
+            title: 'Pages',
+            href: '/admin/pages',
+            icon: FileText,
+        },
+        {
+            title: 'Products',
+            href: '/admin/products',
+            icon: ShoppingBag,
+        },
+        {
+            title: 'Orders',
+            href: '/admin/orders',
+            icon: CreditCard,
+        },
+        {
+            title: 'Themes',
+            href: '/admin/themes',
+            icon: Palette,
+        },
+        {
+            title: 'Plugins',
+            href: '/admin/plugins',
+            icon: Puzzle,
+        },
+        {
+            title: 'AI Insights',
+            href: '/admin/ai-insights',
+            icon: Sparkles,
+        },
+        {
+            title: 'Analytics',
+            href: '/admin/analytics',
+            icon: BarChart3,
+        },
+        {
+            title: 'Settings',
+            href: '/admin/settings',
+            icon: Settings,
         },
     ];
 
