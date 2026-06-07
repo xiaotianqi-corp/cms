@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\FieldGroup;
 use App\Models\Page;
+use App\Models\Setting;
 use App\Services\DynamicFieldsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,27 +18,47 @@ class PageController extends Controller
     {
     }
 
+    private function getLocales(): array
+    {
+        return json_decode(Setting::get('locales', '["en","es"]'), true) ?? ['en'];
+    }
+
+    private function getDefaultLocale(): string
+    {
+        return Setting::get('default_locale', 'en');
+    }
+
     public function index(): Response
     {
-        $pages = Page::orderBy('created_at', 'desc')->get();
-
-        return Inertia::render('admin/pages', ['pages' => $pages]);
+        return Inertia::render('admin/pages', [
+            'pages' => Page::orderBy('created_at', 'desc')->get(),
+            'locales' => $this->getLocales(),
+            'defaultLocale' => $this->getDefaultLocale(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'title_en' => 'required|string',
-            'title_es' => 'nullable|string',
-            'content_en' => 'required|string',
-            'content_es' => 'nullable|string',
-            'status' => 'required|string',
-            'sections' => 'nullable|array',
-        ]);
+        $locales = $this->getLocales();
+        $defaultLocale = $this->getDefaultLocale();
+
+        $rules = ['status' => 'required|string', 'sections' => 'nullable|array'];
+        foreach ($locales as $locale) {
+            $rules["title_{$locale}"] = $locale === $defaultLocale ? 'required|string' : 'nullable|string';
+            $rules["content_{$locale}"] = $locale === $defaultLocale ? 'required|string' : 'nullable|string';
+        }
+        $request->validate($rules);
+
+        $title = [];
+        $content = [];
+        foreach ($locales as $locale) {
+            $title[$locale] = $request->input("title_{$locale}", $request->input("title_{$defaultLocale}", ''));
+            $content[$locale] = $request->input("content_{$locale}", $request->input("content_{$defaultLocale}", ''));
+        }
 
         $page = new Page();
-        $page->title = ['en' => $request->title_en, 'es' => $request->title_es ?? $request->title_en];
-        $page->content = ['en' => $request->content_en, 'es' => $request->content_es ?? $request->content_en];
+        $page->title = $title;
+        $page->content = $content;
         $page->status = $request->status;
         $page->user_id = auth()->id();
         $page->save();
@@ -51,18 +72,23 @@ class PageController extends Controller
 
     public function edit(Page $page): Response
     {
+        $locales = $this->getLocales();
         $page->load(['contentSections.fieldGroup.allFieldDefinitions', 'contentSections.values']);
 
+        $pageData = [
+            'id' => $page->id,
+            'status' => $page->status,
+            'sections' => $page->dynamic_fields,
+        ];
+        foreach ($locales as $locale) {
+            $pageData["title_{$locale}"] = $page->getTranslation('title', $locale);
+            $pageData["content_{$locale}"] = $page->getTranslation('content', $locale);
+        }
+
         return Inertia::render('admin/pages-edit', [
-            'page' => [
-                'id' => $page->id,
-                'title_en' => $page->getTranslation('title', 'en'),
-                'title_es' => $page->getTranslation('title', 'es'),
-                'content_en' => $page->getTranslation('content', 'en'),
-                'content_es' => $page->getTranslation('content', 'es'),
-                'status' => $page->status,
-                'sections' => $page->dynamic_fields,
-            ],
+            'page' => $pageData,
+            'locales' => $locales,
+            'defaultLocale' => $this->getDefaultLocale(),
             'availableGroups' => FieldGroup::active()
                 ->forContentType('page')
                 ->with('fieldDefinitions.subFields')
@@ -96,17 +122,25 @@ class PageController extends Controller
 
     public function update(Request $request, Page $page): RedirectResponse
     {
-        $request->validate([
-            'title_en' => 'required|string',
-            'title_es' => 'nullable|string',
-            'content_en' => 'required|string',
-            'content_es' => 'nullable|string',
-            'status' => 'required|string',
-            'sections' => 'nullable|array',
-        ]);
+        $locales = $this->getLocales();
+        $defaultLocale = $this->getDefaultLocale();
 
-        $page->title = ['en' => $request->title_en, 'es' => $request->title_es ?? $request->title_en];
-        $page->content = ['en' => $request->content_en, 'es' => $request->content_es ?? $request->content_en];
+        $rules = ['status' => 'required|string', 'sections' => 'nullable|array'];
+        foreach ($locales as $locale) {
+            $rules["title_{$locale}"] = $locale === $defaultLocale ? 'required|string' : 'nullable|string';
+            $rules["content_{$locale}"] = $locale === $defaultLocale ? 'required|string' : 'nullable|string';
+        }
+        $request->validate($rules);
+
+        $title = [];
+        $content = [];
+        foreach ($locales as $locale) {
+            $title[$locale] = $request->input("title_{$locale}", $page->getTranslation('title', $locale));
+            $content[$locale] = $request->input("content_{$locale}", $page->getTranslation('content', $locale));
+        }
+
+        $page->title = $title;
+        $page->content = $content;
         $page->status = $request->status;
         $page->save();
 

@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -83,13 +82,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('settings', function (Blueprint $table) {
-            $table->id();
-            $table->string('key')->unique();
-            $table->text('value')->nullable();
-            $table->timestamps();
-        });
-
         Schema::create('themes', function (Blueprint $table) {
             $table->id();
             $table->string('name');
@@ -136,7 +128,6 @@ return new class extends Migration
         Schema::dropIfExists('payments');
         Schema::dropIfExists('plugins');
         Schema::dropIfExists('themes');
-        Schema::dropIfExists('settings');
         Schema::dropIfExists('coupons');
         Schema::dropIfExists('order_items');
         Schema::dropIfExists('orders');

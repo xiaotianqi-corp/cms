@@ -13,12 +13,34 @@ class Setting extends Model
 
     public static function get(string $key, $default = null)
     {
-        $setting = self::where('key', $key)->first();
-        return $setting ? $setting->value : $default;
+        $setting = self::query()
+            ->where('key', $key)
+            ->first();
+
+        if (!$setting) {
+            return $default;
+        }
+
+        $decoded = json_decode($setting->value, true);
+
+        return json_last_error() === JSON_ERROR_NONE
+            ? $decoded
+            : $setting->value;
     }
 
     public static function set(string $key, $value): void
     {
-        self::updateOrCreate(['key' => $key], ['value' => $value]);
+        self::updateOrCreate(
+            ['key' => $key],
+            [
+                'value' => is_array($value)
+                    ? json_encode(
+                        $value,
+                        JSON_UNESCAPED_UNICODE |
+                        JSON_UNESCAPED_SLASHES
+                    )
+                    : $value
+            ]
+        );
     }
 }

@@ -11,9 +11,19 @@ class SettingController extends Controller
 {
     public function index()
     {
-        $settings = Setting::all()->pluck('value', 'key');
+        $settings = Setting::all()
+            ->mapWithKeys(function ($setting) {
+                $decoded = json_decode($setting->value, true);
+
+                return [
+                    $setting->key => json_last_error() === JSON_ERROR_NONE
+                        ? $decoded
+                        : $setting->value,
+                ];
+            });
+
         return Inertia::render('admin/settings', [
-            'settings' => $settings
+            'settings' => $settings,
         ]);
     }
 
