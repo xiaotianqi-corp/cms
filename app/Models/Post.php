@@ -9,10 +9,11 @@ use Spatie\Sluggable\SlugOptions;
 use Spatie\Translatable\HasTranslations;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use App\Concerns\HasDynamicFields;
 
 class Post extends Model implements HasMedia
 {
-    use HasFactory, HasSlug, HasTranslations, InteractsWithMedia;
+    use HasFactory, HasSlug, HasTranslations, InteractsWithMedia, HasDynamicFields;
 
     protected $fillable = ['title', 'content', 'slug', 'status', 'user_id', 'published_at'];
 

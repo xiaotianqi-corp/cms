@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\HasDynamicFields;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Sluggable\HasSlug;
@@ -10,7 +11,7 @@ use Spatie\Translatable\HasTranslations;
 
 class Page extends Model
 {
-    use HasFactory, HasSlug, HasTranslations;
+    use HasFactory, HasSlug, HasTranslations, HasDynamicFields;
 
     protected $fillable = ['title', 'content', 'slug', 'status', 'user_id'];
 

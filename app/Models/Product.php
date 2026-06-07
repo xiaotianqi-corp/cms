@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\HasDynamicFields;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Sluggable\HasSlug;
@@ -12,7 +13,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Product extends Model implements HasMedia
 {
-    use HasFactory, HasSlug, HasTranslations, InteractsWithMedia;
+    use HasFactory, HasSlug, HasTranslations, InteractsWithMedia, HasDynamicFields;
 
     protected $fillable = ['name', 'description', 'price', 'stock', 'slug', 'status', 'category_id'];
 
