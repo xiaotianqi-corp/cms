@@ -30,7 +30,7 @@ class PageController extends Controller
 
     public function index(): Response
     {
-        return Inertia::render('admin/pages', [
+        return Inertia::render('admin/pages/index', [
             'pages' => Page::orderBy('created_at', 'desc')->get(),
             'locales' => $this->getLocales(),
             'defaultLocale' => $this->getDefaultLocale(),
@@ -85,7 +85,7 @@ class PageController extends Controller
             $pageData["content_{$locale}"] = $page->getTranslation('content', $locale);
         }
 
-        return Inertia::render('admin/pages-edit', [
+        return Inertia::render('admin/pages/edit', [
             'page' => $pageData,
             'locales' => $locales,
             'defaultLocale' => $this->getDefaultLocale(),

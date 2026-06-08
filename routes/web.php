@@ -33,6 +33,9 @@ Route::middleware(['web', 'auth'])
             Route::get('/', [MediaController::class, 'index'])->name('index');
             Route::post('/', [MediaController::class, 'store'])->name('store');
             Route::put('/{media}', [MediaController::class, 'update'])->name('update');
+            Route::post('/{media}/replace', [MediaController::class, 'replace'])->name('replace');
+            Route::patch('/{media}/metadata', [MediaController::class, 'metadata'])->name('metadata');
+            Route::patch('/{media}/crop', [MediaController::class, 'crop'])->name('crop');
             Route::delete('/{media}', [MediaController::class, 'destroy'])->name('destroy');
         });
 

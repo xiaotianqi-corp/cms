@@ -5,10 +5,20 @@ export interface MediaItem {
     file_name: string;
     mime_type: string;
     size: number;
+    custom_properties: CustomProperties;
     original_url: string;
     thumb_url?: string;
     large_url?: string;
     webp_url?: string;
+}
+
+
+export interface MediaFolder {
+    id: number;
+    name: string;
+    slug: string;
+    parent_id: number | null;
+    children?: MediaFolder[];
 }
 
 export interface MediaFolder {
@@ -24,4 +34,11 @@ export interface MediaPaginated {
     current_page: number;
     last_page: number;
     total: number;
+}
+
+export interface CustomProperties {
+    alt?: string;
+    title?: string;
+    caption?: string;
+    description?: string;
 }

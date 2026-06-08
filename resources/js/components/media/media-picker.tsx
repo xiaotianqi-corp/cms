@@ -1,11 +1,7 @@
 import { useState } from "react";
-
 import { Button } from "@/components/ui/button";
-
 import MediaDialog from "./media-dialog";
-
 import MediaPreview from "./media-preview";
-
 import { MediaItem } from "@/types/media";
 
 interface Props {
@@ -20,8 +16,7 @@ export default function MediaPicker({
     value,
     onChange,
 }: Props) {
-    const [open, setOpen] =
-        useState(false);
+    const [open, setOpen] = useState(false);
 
     return (
         <>
@@ -43,10 +38,11 @@ export default function MediaPicker({
 
             <MediaDialog
                 open={open}
-                onOpenChange={
-                    setOpen
-                }
-                onSelect={onChange}
+                multiple={false}
+                onOpenChange={setOpen}
+                onSelect={(media) => {
+                    onChange(media);
+                }}
             />
         </>
     );
