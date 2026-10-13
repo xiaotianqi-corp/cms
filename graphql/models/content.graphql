@@ -1,0 +1,85 @@
+extend type Query {
+    posts(status: String @eq): [Post!]! @paginate(defaultCount: 10)
+    post(slug: String @eq): Post @find
+
+    pages(status: String @eq): [Page!]! @paginate(defaultCount: 10)
+    page(slug: String @eq): Page @find
+
+    fieldGroups(content_type: String @eq): [Cpt!]! @all
+    fieldGroup(slug: String @eq): Cpt @find
+}
+
+type Post {
+    id: ID!
+    title: JSON!
+    content: JSON!
+    slug: String!
+    status: String!
+    published_at: DateTime
+    created_at: DateTime!
+    updated_at: DateTime!
+    sections: [ContentSection!]! @hasMany(relation: "contentSections")
+}
+
+type Page {
+    id: ID!
+    title: JSON!
+    content: JSON!
+    slug: String!
+    status: String!
+    created_at: DateTime!
+    updated_at: DateTime!
+    sections: [ContentSection!]! @hasMany(relation: "contentSections")
+}
+
+type ContentSection {
+    id: ID!
+    order: Int!
+    fieldGroup: Cpt! @belongsTo
+    "Structured data section as JSON object"
+    data: JSON! @method(name: "toStructuredData")
+}
+
+type Cpt {
+    id: ID!
+    title: String!
+    slug: String!
+    description: String
+    content_type: String!
+    is_active: Boolean!
+    order: Int!
+    fields: [CptDefinition!]! @hasMany(relation: "cptDefinitions")
+    entries: [CptEntry!]! @hasMany(relation: "entries")
+}
+
+type CptDefinition {
+    id: ID!
+    label: String!
+    name: String!
+    type: String!
+    required: Boolean!
+    options: JSON
+    settings: JSON
+    instructions: String
+    order: Int!
+    sub_fields: [CptDefinition!]! @hasMany(relation: "subCpts")
+}
+
+type CptEntry {
+    id: ID!
+    title: String!
+    slug: String
+    status: String!
+    cpt: Cpt! @belongsTo(relation: "cpts")
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+
+type MediaFolder {
+    id: ID!
+    name: String!
+    slug: String!
+    sort_order: Int!
+    parent: MediaFolder @belongsTo
+    children: [MediaFolder!]! @hasMany
+}

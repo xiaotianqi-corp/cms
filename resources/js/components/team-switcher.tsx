@@ -1,5 +1,4 @@
 import { router, usePage } from '@inertiajs/react';
-import { Check, ChevronsUpDown, Plus, Users } from 'lucide-react';
 import CreateTeamModal from '@/components/create-team-modal';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +12,9 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { switchMethod } from '@/routes/teams';
 import type { Team } from '@/types';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Add01Icon, ArrowRight01Icon, CheckIcon, UserGroupIcon } from '@hugeicons/core-free-icons';
+import { cn } from '@/lib/utils';
 
 type TeamSwitcherProps = {
     inHeader?: boolean;
@@ -59,11 +61,11 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
                     data-test="team-switcher-trigger"
                     className={
                         inHeader
-                            ? 'h-8 gap-1 px-2'
-                            : 'w-full justify-start px-2 has-[>svg]:px-2 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
+                            ? 'group h-8 gap-1 px-2'
+                            : 'group w-full justify-start px-2 has-[>svg]:px-2 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
                     }
                 >
-                    <Users
+                    <HugeiconsIcon icon={UserGroupIcon}
                         className={
                             inHeader
                                 ? 'hidden'
@@ -87,12 +89,9 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
                             {currentTeam?.name ?? 'Select team'}
                         </span>
                     </div>
-                    <ChevronsUpDown
-                        className={
-                            inHeader
-                                ? 'size-4 opacity-50'
-                                : 'ml-auto group-data-[collapsible=icon]:hidden'
-                        }
+                    <HugeiconsIcon
+                        icon={ArrowRight01Icon}
+                        className="ml-auto size-4 transition-transform duration-200 group-data-[collapsible=icon]:hidden group-data-[state=open]:rotate-90"
                     />
                 </Button>
             </DropdownMenuTrigger>
@@ -115,14 +114,14 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
                         data-test="team-switcher-item"
                         className={
                             inHeader
-                                ? 'cursor-pointer gap-2'
-                                : 'cursor-pointer gap-2 p-2'
+                                ? 'cursor-pointer gap-2 px-2 py-0'
+                                : 'cursor-pointer gap-2 px-2 py-0'
                         }
                         onSelect={() => switchTeam(team)}
                     >
                         {team.name}
                         {currentTeam?.id === team.id && (
-                            <Check
+                            <HugeiconsIcon icon={CheckIcon}
                                 className={
                                     inHeader
                                         ? 'ml-auto size-4'
@@ -138,12 +137,12 @@ export function TeamSwitcher({ inHeader = false }: TeamSwitcherProps) {
                         data-test="team-switcher-new-team"
                         className={
                             inHeader
-                                ? 'cursor-pointer gap-2'
-                                : 'cursor-pointer gap-2 p-2'
+                                ? 'cursor-pointer gap-2 px-2 py-0'
+                                : 'cursor-pointer gap-2 px-2 py-0 '
                         }
                         onSelect={(event) => event.preventDefault()}
                     >
-                        <Plus className={inHeader ? 'size-4' : 'h-4 w-4'} />
+                        <HugeiconsIcon icon={Add01Icon} className={inHeader ? 'size-4' : 'h-4 w-4'} />
                         <span className="text-muted-foreground">New team</span>
                     </DropdownMenuItem>
                 </CreateTeamModal>

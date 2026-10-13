@@ -16,15 +16,16 @@ class PluginController extends Controller
         $this->pluginService = $pluginService;
     }
 
-    public function index()
+    public function index(string $current_team)
     {
         $plugins = $this->pluginService->getPlugins();
-        return Inertia::render('admin/plugins', [
-            'plugins' => $plugins
+
+        return Inertia::render('admin/plugins/index', [
+            'plugins' => $plugins,
         ]);
     }
 
-    public function toggle(Request $request, $slug)
+    public function toggle(Request $request, string $current_team, $slug)
     {
         $request->validate([
             'is_active' => 'required|boolean',
@@ -38,6 +39,6 @@ class PluginController extends Controller
             $msg = "Plugin '{$slug}' deactivated.";
         }
 
-        return redirect()->back()->with('success', $msg);
+        return redirect()->route('admin.plugins.index', ['current_team' => $current_team])->with('success', $msg);
     }
 }

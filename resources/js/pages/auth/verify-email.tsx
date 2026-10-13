@@ -1,7 +1,8 @@
-// Components
 import { Form, Head } from '@inertiajs/react';
+import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { logout } from '@/routes';
 import { send } from '@/routes/verification';
@@ -13,23 +14,39 @@ export default function VerifyEmail({ status }: { status?: string }) {
 
             {status === 'verification-link-sent' && (
                 <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    A new verification link has been sent to the email address
-                    you provided during registration.
+                    We sent a new link and code to your email.
                 </div>
             )}
 
-            <Form {...send.form()} className="space-y-6 text-center">
+            <Form action="/email/verify-code" method="post" className="space-y-3">
+                {({ processing, errors }) => (
+                    <>
+                        <Input
+                            name="code"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            maxLength={6}
+                            placeholder="123456"
+                            className="text-center text-lg tracking-[0.5em]"
+                            autoFocus
+                        />
+                        <InputError message={errors.code} />
+                        <Button disabled={processing} className="w-full">
+                            {processing && <Spinner />}
+                            Verify code
+                        </Button>
+                    </>
+                )}
+            </Form>
+
+            <Form {...send.form()} className="mt-6 space-y-4 text-center">
                 {({ processing }) => (
                     <>
                         <Button disabled={processing} variant="secondary">
                             {processing && <Spinner />}
-                            Resend verification email
+                            Resend email
                         </Button>
-
-                        <TextLink
-                            href={logout()}
-                            className="mx-auto block text-sm"
-                        >
+                        <TextLink href={logout()} className="mx-auto block text-sm">
                             Log out
                         </TextLink>
                     </>
@@ -40,7 +57,6 @@ export default function VerifyEmail({ status }: { status?: string }) {
 }
 
 VerifyEmail.layout = {
-    title: 'Email verification',
-    description:
-        'Please verify your email address by clicking on the link we just emailed to you.',
+    title: 'Verify your email',
+    description: 'Enter the 6-digit code we emailed you, or click the link in the email.',
 };

@@ -1,6 +1,5 @@
 import { Form } from '@inertiajs/react';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
-import { Check, Copy, ScanLine } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AlertError from '@/components/alert-error';
 import InputError from '@/components/input-error';
@@ -22,6 +21,8 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
 import { confirm } from '@/routes/two-factor';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { CopyIcon, ShieldUserIcon, Tick02Icon } from '@hugeicons/core-free-icons';
 
 function GridScanIcon() {
     return (
@@ -43,7 +44,7 @@ function GridScanIcon() {
                         />
                     ))}
                 </div>
-                <ScanLine className="relative z-20 size-6 text-foreground" />
+                <HugeiconsIcon icon={ShieldUserIcon} className="relative z-20 size-6 text-foreground" />
             </div>
         </div>
     );
@@ -64,34 +65,35 @@ function TwoFactorSetupStep({
 }) {
     const { resolvedAppearance } = useAppearance();
     const [copiedText, copy] = useClipboard();
-    const IconComponent = copiedText === manualSetupKey ? Check : Copy;
+    const IconComponent = copiedText === manualSetupKey ? Tick02Icon : CopyIcon;
 
     return (
         <>
             {errors?.length ? (
                 <AlertError errors={errors} />
             ) : (
-                <>
-                    <div className="mx-auto flex max-w-md overflow-hidden">
-                        <div className="mx-auto aspect-square w-64 rounded-lg border border-border">
-                            <div className="z-10 flex h-full w-full items-center justify-center p-5">
-                                {qrCodeSvg ? (
-                                    <div
-                                        className="aspect-square w-full rounded-lg bg-white p-2 [&_svg]:size-full"
-                                        dangerouslySetInnerHTML={{
-                                            __html: qrCodeSvg,
-                                        }}
-                                        style={{
-                                            filter:
-                                                resolvedAppearance === 'dark'
-                                                    ? 'invert(1) brightness(1.5)'
-                                                    : undefined,
-                                        }}
-                                    />
-                                ) : (
-                                    <Spinner />
-                                )}
-                            </div>
+                <div className="w-full space-y-6">
+                    {/* QR */}
+                    <div className="flex justify-center">
+                        <div className="rounded-xl bg-white p-4 shadow-sm">
+                            {qrCodeSvg ? (
+                                <div
+                                    className="[&_svg]:size-44"
+                                    dangerouslySetInnerHTML={{
+                                        __html: qrCodeSvg,
+                                    }}
+                                    style={{
+                                        filter:
+                                            resolvedAppearance === "dark"
+                                                ? "invert(1) brightness(1.5)"
+                                                : undefined,
+                                    }}
+                                />
+                            ) : (
+                                <div className="flex h-44 w-44 items-center justify-center">
+                                    <Spinner className="size-6" />
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -108,31 +110,37 @@ function TwoFactorSetupStep({
                         </span>
                     </div>
 
-                    <div className="flex w-full space-x-2">
-                        <div className="flex w-full items-stretch overflow-hidden rounded-xl border border-border">
-                            {!manualSetupKey ? (
-                                <div className="flex h-full w-full items-center justify-center bg-muted p-3">
-                                    <Spinner />
-                                </div>
-                            ) : (
-                                <>
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={manualSetupKey}
-                                        className="h-full w-full bg-background p-3 text-foreground outline-none"
-                                    />
-                                    <button
-                                        onClick={() => copy(manualSetupKey)}
-                                        className="border-l border-border px-3 hover:bg-muted"
-                                    >
-                                        <IconComponent className="w-4" />
-                                    </button>
-                                </>
-                            )}
-                        </div>
+                    <div className="rounded-xl bg-card">
+                        {!manualSetupKey ? (
+                            <div className="flex h-11 items-center justify-center rounded-lg bg-muted">
+                                <Spinner className="size-5" />
+                            </div>
+                        ) : (
+                            <div className="flex overflow-hidden rounded-lg border">
+                                <input
+                                    readOnly
+                                    value={manualSetupKey}
+                                    className="flex-1 bg-background px-3 py-2 text-sm outline-none"
+                                />
+
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="rounded-none border-l"
+                                    onClick={() => copy(manualSetupKey)}
+                                >
+                                    <HugeiconsIcon icon={IconComponent} className="size-4" />
+                                </Button>
+                            </div>
+                        )}
+
+                        <p className="mt-3 text-xs text-muted-foreground">
+                            If you can't scan the QR code, enter this key manually
+                            into your authenticator application.
+                        </p>
                     </div>
-                </>
+                </div>
             )}
         </>
     );

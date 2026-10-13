@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\TeamRole;
 use Database\Factories\TeamInvitationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -63,7 +62,7 @@ class TeamInvitation extends Model
      */
     public function isPending(): bool
     {
-        return $this->accepted_at === null && !$this->isExpired();
+        return $this->accepted_at === null && ! $this->isExpired();
     }
 
     /**

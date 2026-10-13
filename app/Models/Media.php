@@ -2,14 +2,19 @@
 
 namespace App\Models;
 
-use Spatie\MediaLibrary\MediaCollections\Models\Media as BaseMedia;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\MediaLibrary\MediaCollections\Models\Media as BaseMedia;
 
 class Media extends BaseMedia
 {
-    protected $casts = [
-        'custom_properties' => 'array',
-    ];
+    protected $guarded = [];
+
+    protected function casts(): array
+    {
+        return array_merge(parent::casts(), [
+            'custom_properties' => 'array',
+        ]);
+    }
 
     public function getAltAttribute(): ?string
     {
@@ -26,40 +31,8 @@ class Media extends BaseMedia
         return $this->getCustomProperty('title');
     }
 
-    public function registerMediaConversions(?Media $media = null): void
-    {
-
-        $crop = $media?->getCustomProperty('crop');
-
-        if ($crop) {
-
-            $this
-                ->addMediaConversion('thumb')
-                ->manualCrop(
-                    (int) $crop['width'],
-                    (int) $crop['height'],
-                    (int) $crop['x'],
-                    (int) $crop['y']
-                )
-                ->queued();
-        }
-
-        $this
-            ->addMediaConversion('large')
-            ->width(1600)
-            ->queued();
-
-        $this
-            ->addMediaConversion('webp')
-            ->format('webp')
-            ->queued();
-    }
-
     public function folder(): BelongsTo
     {
-        return $this->belongsTo(
-            MediaFolder::class,
-            'folder_id'
-        );
+        return $this->belongsTo(MediaFolder::class, 'folder_id');
     }
 }

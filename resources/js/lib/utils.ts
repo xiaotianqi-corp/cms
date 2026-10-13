@@ -1,4 +1,5 @@
-import { LinkHref } from '@/types';
+
+import { LinkHref } from '@/types/navigation';
 import type { InertiaLinkProps } from '@inertiajs/react';
 import { clsx } from 'clsx';
 import type { ClassValue } from 'clsx';

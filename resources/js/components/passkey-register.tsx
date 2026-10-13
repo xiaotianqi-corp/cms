@@ -1,100 +1,163 @@
-import { usePasskeyRegister } from '@laravel/passkeys/react';
 import { useState } from 'react';
+import { usePasskeyRegister } from '@laravel/passkeys/react';
+
 import InputError from '@/components/input-error';
+
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-type Props = {
+interface Props {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
     onSuccess: () => void;
-};
+}
 
-export default function PasskeyRegistration({ onSuccess }: Props) {
-    const [name, setName] = useState(() => {
-        const ua = navigator.userAgent;
+function defaultName() {
+    const ua = navigator.userAgent;
 
-        const browser = ['Chrome', 'Firefox', 'Safari', 'Edge', 'Opera'].find(
-            (browser) => new RegExp(browser).test(ua),
-        );
+    const browser = [
+        'Chrome',
+        'Firefox',
+        'Safari',
+        'Edge',
+        'Opera',
+    ].find((browser) => new RegExp(browser).test(ua));
 
-        const os = ['iPhone', 'iPad', 'Android', 'Mac', 'Windows'].find((os) =>
-            new RegExp(os).test(ua),
-        );
+    const os = [
+        'Mac',
+        'Windows',
+        'iPhone',
+        'iPad',
+        'Android',
+    ].find((os) => new RegExp(os).test(ua));
 
-        return [browser, os].filter(Boolean).join(' on ') || '';
-    });
+    return [browser, os].filter(Boolean).join(' on ');
+}
 
-    const [showForm, setShowForm] = useState(false);
-    const { register, isLoading, error, isSupported } = usePasskeyRegister({
+export default function PasskeyRegistration({
+    open,
+    onOpenChange,
+    onSuccess,
+}: Props) {
+    const [name, setName] = useState(defaultName);
+
+    const {
+        register,
+        isLoading,
+        error,
+        isSupported,
+    } = usePasskeyRegister({
         onSuccess: () => {
-            setName('');
-            setShowForm(false);
+            onOpenChange(false);
+            setName(defaultName());
             onSuccess();
         },
     });
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const submit = async (
+        e: React.FormEvent<HTMLFormElement>,
+    ) => {
         e.preventDefault();
 
-        if (!name.trim()) {
-            return;
-        }
+        if (!name.trim()) return;
 
         await register(name);
     };
 
-    const handleCancel = () => {
-        setShowForm(false);
-        setName('');
+    const handleOpenChange = (next: boolean) => {
+        onOpenChange(next);
+
+        if (!next) {
+            setName(defaultName());
+        }
     };
 
     if (!isSupported) {
         return (
             <div className="text-sm text-muted-foreground">
-                Passkeys are not supported in this browser.
+                Passkeys are not supported.
             </div>
-        );
-    }
-
-    if (!showForm) {
-        return (
-            <Button variant="outline" onClick={() => setShowForm(true)}>
-                Add passkey
-            </Button>
         );
     }
 
     return (
-        <form
-            onSubmit={handleSubmit}
-            className="space-y-4 rounded-lg border border-border bg-muted/50 p-4"
+        <Dialog
+            open={open}
+            onOpenChange={handleOpenChange}
         >
-            <div className="grid gap-2">
-                <Label htmlFor="passkey-name">Passkey name</Label>
-                <Input
-                    id="passkey-name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., MacBook Pro, iPhone"
-                    className="mt-1 block w-full border-foreground/20"
-                    autoFocus
-                />
-                <p className="text-xs text-muted-foreground">
-                    A name helps you identify this passkey later.
-                </p>
-            </div>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>
+                        Register a passkey
+                    </DialogTitle>
 
-            {error && <InputError message={error} />}
+                    <DialogDescription>
+                        Give this passkey a recognizable name.
+                    </DialogDescription>
+                </DialogHeader>
 
-            <div className="flex gap-2">
-                <Button type="submit" disabled={isLoading || !name.trim()}>
-                    {isLoading ? 'Registering...' : 'Register passkey'}
-                </Button>
-                <Button type="button" variant="ghost" onClick={handleCancel}>
-                    Cancel
-                </Button>
-            </div>
-        </form>
+                <form
+                    onSubmit={submit}
+                    className="space-y-5"
+                >
+                    <div className="grid gap-2">
+                        <Label htmlFor="passkey-name">
+                            Passkey name
+                        </Label>
+
+                        <Input
+                            id="passkey-name"
+                            autoFocus
+                            value={name}
+                            onChange={(e) =>
+                                setName(e.target.value)
+                            }
+                        />
+
+                        <p className="text-xs text-muted-foreground">
+                            Only visible to you.
+                        </p>
+                    </div>
+
+                    {error && (
+                        <InputError message={error} />
+                    )}
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() =>
+                                onOpenChange(false)
+                            }
+                        >
+                            Cancel
+                        </Button>
+
+                        <Button
+                            type="submit"
+                            disabled={
+                                isLoading ||
+                                !name.trim()
+                            }
+                        >
+                            {isLoading
+                                ? 'Registering...'
+                                : 'Register passkey'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }

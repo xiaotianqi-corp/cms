@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Concerns\GeneratesUniqueTeamSlugs;
-use App\Enums\TeamRole;
+use App\Enums\BusinessType;
+use App\Enums\HostingPlan;
+use App\Enums\ProjectType;
 use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,8 +13,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Permission\PermissionRegistrar;
 
-#[Fillable(['name', 'slug', 'is_personal'])]
+#[Fillable(['name', 'slug', 'is_personal', 'business_type', 'hosting_plan', 'project_type'])]
 class Team extends Model
 {
     /** @use HasFactory<TeamFactory> */
@@ -43,8 +46,10 @@ class Team extends Model
      */
     public function owner(): ?Model
     {
+        app(PermissionRegistrar::class)->setPermissionsTeamId($this->id);
+
         return $this->members()
-            ->wherePivot('role', TeamRole::Owner->value)
+            ->whereHas('roles', fn ($query) => $query->where('name', 'Owner'))
             ->first();
     }
 
@@ -81,6 +86,11 @@ class Team extends Model
         return $this->hasMany(TeamInvitation::class);
     }
 
+    public function cpts(): HasMany
+    {
+        return $this->hasMany(Cpt::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -90,6 +100,9 @@ class Team extends Model
     {
         return [
             'is_personal' => 'boolean',
+            'business_type' => BusinessType::class,
+            'hosting_plan' => HostingPlan::class,
+            'project_type' => ProjectType::class,
         ];
     }
 
@@ -99,5 +112,29 @@ class Team extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    // Team.php
+    public function subscriptions(): HasMany { return $this->hasMany(Subscription::class); }
+
+    public function activeSubscription(): ?Subscription
+    {
+        return $this->subscriptions()->with('plan')->latest()->get()
+            ->first(fn ($s) => $s->active() || $s->onGracePeriod());
+    }
+
+    public function entitlements(): array
+    {
+        return $this->activeSubscription()?->plan?->entitlements
+            ?? ['modules' => [], 'limits' => []];
+    }
+
+    public function hasModule(string $module): bool
+    {
+        if (auth()->user()?->is_super_admin) {
+            return true;
+        }
+
+        return in_array($module, $this->entitlements()['modules'] ?? [], true);
     }
 }

@@ -1,84 +1,32 @@
-import { Link } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
-import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { useCurrentUrl } from '@/hooks/use-current-url';
-import { cn, toUrl } from '@/lib/utils';
-import { edit as editAppearance } from '@/routes/appearance';
-import { edit } from '@/routes/profile';
-import { edit as editSecurity } from '@/routes/security';
-import { index as teams } from '@/routes/teams';
-import type { NavItem } from '@/types';
+import { SettingsShell } from '@/components/settings/settings-ui';
+import { useSettingsTab } from '@/hooks/use-settings-tab';
+import { settingsTabs, type SettingsTabKey } from '@/layouts/settings/nav';
 
-const sidebarNavItems: NavItem[] = [
-    {
-        title: 'Profile',
-        href: edit(),
-        icon: null,
-    },
-    {
-        title: 'Security',
-        href: editSecurity(),
-        icon: null,
-    },
-    {
-        title: 'Teams',
-        href: teams(),
-        icon: null,
-    },
-    {
-        title: 'Appearance',
-        href: editAppearance(),
-        icon: null,
-    },
-];
+// Compatibilidad: otros archivos (ej. billing-tab) importan el tipo desde aquí.
+export type { SettingsTabKey } from '@/layouts/settings/nav';
 
-export default function SettingsLayout({ children }: PropsWithChildren) {
-    const { isCurrentOrParentUrl } = useCurrentUrl();
+/** Tabs con tablas/listas anchas: usan más ancho de contenido. */
+const WIDE: SettingsTabKey[] = ['api', 'webhooks', 'billing', 'plan', 'plugins', 'integrations', 'backups'];
+
+interface SettingsLayoutProps extends PropsWithChildren {
+    /** Opcionales: la navegación ahora vive en el sidebar y la pestaña activa en la URL (?tab=). */
+    active?: SettingsTabKey;
+    onChange?: (key: SettingsTabKey) => void;
+}
+
+/**
+ * Ya no dibuja pills horizontales. El sidebar principal cambia a "modo settings"
+ * (como Nightwatch) y este layout solo pone el título y el contenedor centrado.
+ */
+export default function SettingsLayout({ children, active }: SettingsLayoutProps) {
+    const [current] = useSettingsTab();
+    const key = active ?? current;
+    const meta = settingsTabs.find((t) => t.key === key);
 
     return (
-        <div className="px-4 py-6">
-            <Heading
-                title="Settings"
-                description="Manage your profile and account settings"
-            />
-
-            <div className="flex flex-col lg:flex-row lg:space-x-12">
-                <aside className="w-full max-w-xl lg:w-48">
-                    <nav
-                        className="flex flex-col space-y-1 space-x-0"
-                        aria-label="Settings"
-                    >
-                        {sidebarNavItems.map((item, index) => (
-                            <Button
-                                key={`${toUrl(item.href)}-${index}`}
-                                size="sm"
-                                variant="ghost"
-                                asChild
-                                className={cn('w-full justify-start', {
-                                    'bg-muted': isCurrentOrParentUrl(item.href),
-                                })}
-                            >
-                                <Link href={item.href}>
-                                    {item.icon && (
-                                        <item.icon className="h-4 w-4" />
-                                    )}
-                                    {item.title}
-                                </Link>
-                            </Button>
-                        ))}
-                    </nav>
-                </aside>
-
-                <Separator className="my-6 lg:hidden" />
-
-                <div className="flex-1 md:max-w-2xl">
-                    <section className="max-w-xl space-y-12">
-                        {children}
-                    </section>
-                </div>
-            </div>
-        </div>
+        <SettingsShell title={meta?.label ?? 'Settings'} description={meta?.description} wide={WIDE.includes(key)}>
+            {children}
+        </SettingsShell>
     );
 }

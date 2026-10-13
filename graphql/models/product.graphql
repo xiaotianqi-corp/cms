@@ -1,0 +1,237 @@
+extend type Query {
+    products(featured: Boolean @eq, isVisible: Boolean @eq(key: "is_visible")): [Product!]! @paginate(defaultCount: 10)
+    product(slug: String @eq): Product @find
+
+    categories(isEnabled: Boolean @eq(key: "is_enabled")): [Category!]! @paginate(defaultCount: 25)
+    category(slug: String @eq): Category @find
+
+    brands: [Brand!]! @paginate(defaultCount: 25)
+    brand(slug: String @eq): Brand @find
+
+    suppliers: [Supplier!]! @paginate(defaultCount: 25)
+    supplier(slug: String @eq): Supplier @find
+
+    collections(type: String @eq): [Collection!]! @paginate(defaultCount: 25)
+    collection(slug: String @eq): Collection @find
+
+    attributes(isFilterable: Boolean @eq(key: "is_filterable")): [Attribute!]! @all
+    attribute(slug: String @eq): Attribute @find
+
+    reviews(approved: Boolean @eq): [Review!]! @paginate(defaultCount: 25)
+}
+
+extend type Mutation {
+    createCategory(input: CreateCategoryInput! @spread): Category! @create(model: "App\\Models\\Category") @can(ability: "create_category")
+    updateCategory(id: ID!, input: UpdateCategoryInput! @spread): Category! @update(model: "App\\Models\\Category") @can(ability: "update_category", find: "id")
+    deleteCategory(id: ID!): Category @delete(model: "App\\Models\\Category") @can(ability: "delete_category", find: "id")
+
+    createBrand(input: CreateBrandInput! @spread): Brand! @create(model: "App\\Models\\Brand") @can(ability: "create_brand")
+    updateBrand(id: ID!, input: UpdateBrandInput! @spread): Brand! @update(model: "App\\Models\\Brand") @can(ability: "update_brand", find: "id")
+    deleteBrand(id: ID!): Brand @delete(model: "App\\Models\\Brand") @can(ability: "delete_brand", find: "id")
+
+    createSupplier(input: CreateSupplierInput! @spread): Supplier! @create(model: "App\\Models\\Supplier") @can(ability: "create_supplier")
+    updateSupplier(id: ID!, input: UpdateSupplierInput! @spread): Supplier! @update(model: "App\\Models\\Supplier") @can(ability: "update_supplier", find: "id")
+    deleteSupplier(id: ID!): Supplier @delete(model: "App\\Models\\Supplier") @can(ability: "delete_supplier", find: "id")
+
+    updateReview(id: ID!, approved: Boolean!): Review! @update(model: "App\\Models\\Review") @can(ability: "update_review", find: "id")
+    deleteReview(id: ID!): Review @delete(model: "App\\Models\\Review") @can(ability: "delete_review", find: "id")
+}
+
+type Product {
+    id: ID!
+    name: String!
+    slug: String!
+    sku: String
+    barcode: String
+    description: String
+    summary: String
+    featured: Boolean!
+    is_visible: Boolean!
+    allow_backorder: Boolean!
+    type: String
+    published_at: DateTime
+    weight: Float
+    height: Float
+    width: Float
+    length: Float
+    brand: Brand @belongsTo
+    supplier: Supplier @belongsTo
+    categories: [Category!]! @belongsToMany
+    tags: [ProductTag!]! @belongsToMany
+    variants: [ProductVariant!]! @hasMany
+    prices: [Price!]! @hasMany
+    created_at: DateTime!
+    updated_at: DateTime!
+    sections: [ContentSection!]! @hasMany(relation: "contentSections")
+}
+
+type ProductVariant {
+    id: ID!
+    name: String!
+    sku: String
+    barcode: String
+    ean: String
+    upc: String
+    allow_backorder: Boolean!
+    position: Int!
+    weight: Float
+    height: Float
+    width: Float
+    length: Float
+    product: Product! @belongsTo
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+
+type Category {
+    id: ID!
+    name: String!
+    slug: String
+    description: String
+    position: Int!
+    is_enabled: Boolean!
+    parent: Category @belongsTo
+    children: [Category!]! @hasMany
+    products: [Product!]! @belongsToMany
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+
+type Brand {
+    id: ID!
+    name: String!
+    slug: String
+    website: String
+    description: String
+    position: Int!
+    is_enabled: Boolean!
+    products: [Product!]! @hasMany
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+
+type Supplier {
+    id: ID!
+    name: String!
+    slug: String
+    email: String
+    phone: String
+    contact_name: String
+    website: String
+    description: String
+    notes: String
+    is_enabled: Boolean!
+    products: [Product!]! @hasMany
+}
+
+type Collection {
+    id: ID!
+    name: String!
+    slug: String
+    description: String
+    type: String!
+    sort: String
+    match_conditions: String
+    published_at: DateTime
+    rules: [CollectionRule!]! @hasMany
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+
+type CollectionRule {
+    id: ID!
+    rule: String!
+    operator: String!
+    value: String!
+    collection: Collection! @belongsTo
+}
+
+type Attribute {
+    id: ID!
+    name: String!
+    slug: String
+    description: String
+    type: String!
+    is_enabled: Boolean!
+    is_searchable: Boolean!
+    is_filterable: Boolean!
+    icon: String
+    values: [AttributeValue!]! @hasMany
+}
+
+type AttributeValue {
+    id: ID!
+    value: String!
+    key: String!
+    position: Int
+    attribute: Attribute! @belongsTo
+}
+
+type Review {
+    id: ID!
+    is_recommended: Boolean!
+    rating: Int!
+    title: String
+    content: String
+    approved: Boolean!
+}
+
+input CreateCategoryInput {
+    name: String!
+    slug: String
+    description: String
+    position: Int
+    is_enabled: Boolean
+    parent_id: ID
+}
+
+input UpdateCategoryInput {
+    name: String
+    slug: String
+    description: String
+    position: Int
+    is_enabled: Boolean
+    parent_id: ID
+}
+
+input CreateBrandInput {
+    name: String!
+    slug: String
+    website: String
+    description: String
+    position: Int
+    is_enabled: Boolean
+}
+
+input UpdateBrandInput {
+    name: String
+    slug: String
+    website: String
+    description: String
+    position: Int
+    is_enabled: Boolean
+}
+
+input CreateSupplierInput {
+    name: String!
+    slug: String
+    email: String
+    phone: String
+    contact_name: String
+    website: String
+    description: String
+    notes: String
+    is_enabled: Boolean
+}
+
+input UpdateSupplierInput {
+    name: String
+    slug: String
+    email: String
+    phone: String
+    contact_name: String
+    website: String
+    description: String
+    notes: String
+    is_enabled: Boolean
+}

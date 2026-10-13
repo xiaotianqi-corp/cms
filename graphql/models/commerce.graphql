@@ -1,0 +1,82 @@
+extend type Query {
+    invoices(order_id: ID @eq): [Invoice!]! @paginate(defaultCount: 25) @guard
+
+    orderRefunds(order_id: ID @eq): [OrderRefund!]! @paginate(defaultCount: 25) @guard
+    orderRefund(id: ID @eq): OrderRefund @find @guard
+
+    paymentTransactions(order_id: ID @eq, status: String @eq): [PaymentTransaction!]! @paginate(defaultCount: 25) @guard
+    paymentTransaction(id: ID @eq): PaymentTransaction @find @guard
+
+    inventoryHistories(inventory_id: ID @eq): [InventoryHistory!]! @paginate(defaultCount: 50) @guard
+}
+
+extend type Mutation {
+    createOrderRefund(input: CreateOrderRefundInput! @spread): OrderRefund! @guard @create(model: "App\\Models\\OrderRefund")
+}
+
+type Invoice {
+    id: ID!
+    number: String!
+    status: String!
+    amount: Int!
+    currency_code: String!
+    due_at: DateTime
+    paid_at: DateTime
+    order: Order @belongsTo
+    customer: User @belongsTo
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+
+type OrderRefund {
+    id: ID!
+    amount: Int!
+    reason: String
+    status: String!
+    notes: String
+    order: Order! @belongsTo
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+
+type PaymentTransaction {
+    id: ID!
+    driver: String!
+    type: String!
+    status: String!
+    amount: Int!
+    currency_code: String!
+    reference: String
+    notes: String
+    order: Order @belongsTo
+    paymentMethod: PaymentMethod @belongsTo(relation: "paymentMethod")
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+
+type Price {
+    id: ID!
+    amount: Int!
+    currency_code: String!
+    compare_amount: Int
+    min_quantity: Int
+    max_quantity: Int
+    currency: Currency @belongsTo
+}
+
+type InventoryHistory {
+    id: ID!
+    quantity: Int!
+    direction: String!
+    reason: String
+    notes: String
+    inventory: Inventory! @belongsTo
+    created_at: DateTime!
+}
+
+input CreateOrderRefundInput {
+    order_id: ID!
+    amount: Int!
+    reason: String
+    notes: String
+}

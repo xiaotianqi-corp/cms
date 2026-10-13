@@ -12,6 +12,24 @@ export interface MediaItem {
     webp_url?: string;
 }
 
+export interface UploadingMedia {
+    id: string;
+    uploading: true;
+    progress: number;
+    preview: string;
+    folder_id: number | null;
+    custom_properties: CustomProperties;
+    name: string;
+    file_name: string;
+    mime_type: string;
+    size: number;
+    original_url: string;
+    thumb_url?: string;
+}
+
+export type MediaItems =
+    | MediaItem
+    | UploadingMedia;
 
 export interface MediaFolder {
     id: number;

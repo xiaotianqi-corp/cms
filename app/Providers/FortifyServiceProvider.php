@@ -45,6 +45,12 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+
+        $this->app->instance(RegisterResponseContract::class, new class implements RegisterResponseContract {
+            public function toResponse($request) {
+                return redirect()->route('onboarding.show');
+            }
+        });
     }
 
     /**

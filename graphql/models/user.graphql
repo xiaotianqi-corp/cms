@@ -1,0 +1,76 @@
+type Query {
+    me: User @auth
+    user(
+        id: ID @eq @rules(apply: ["prohibits:email", "required_without:email"])
+        email: String @eq @rules(apply: ["prohibits:id", "required_without:id", "email"])
+    ): User @find
+    users(name: String @where(operator: "like")): [User!]! @paginate(defaultCount: 10)
+}
+
+type Mutation {
+    createAddress(input: CreateAddressInput! @spread): Address! @create(model: "App\\Models\\Address")
+    updateAddress(id: ID!, input: UpdateAddressInput! @spread): Address! @update(model: "App\\Models\\Address") @can(ability: "update", find: "id")
+    deleteAddress(id: ID!): Address @delete(model: "App\\Models\\Address") @can(ability: "delete", find: "id")
+}
+
+type User {
+    id: ID!
+    name: String!
+    email: String!
+    email_verified_at: DateTime
+    addresses: [Address!]! @hasMany
+    orders: [Order!]! @hasMany
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+
+type Address {
+    id: ID!
+    first_name: String!
+    last_name: String!
+    company_name: String
+    street_address: String!
+    street_address_plus: String
+    postal_code: String!
+    city: String!
+    state: String
+    phone_number: String
+    shipping_default: Boolean!
+    billing_default: Boolean!
+    type: String
+    country: Country! @belongsTo
+    user: User! @belongsTo
+}
+
+input CreateAddressInput {
+    first_name: String!
+    last_name: String!
+    company_name: String
+    street_address: String!
+    street_address_plus: String
+    postal_code: String!
+    city: String!
+    state: String
+    phone_number: String
+    shipping_default: Boolean
+    billing_default: Boolean
+    type: String
+    country_id: ID!
+    user_id: ID!
+}
+
+input UpdateAddressInput {
+    first_name: String
+    last_name: String
+    company_name: String
+    street_address: String
+    street_address_plus: String
+    postal_code: String
+    city: String
+    state: String
+    phone_number: String
+    shipping_default: Boolean
+    billing_default: Boolean
+    type: String
+    country_id: ID
+}

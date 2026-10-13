@@ -8,7 +8,7 @@ interface Props {
     value?: MediaItem | null;
 
     onChange: (
-        media: MediaItem
+        media: MediaItem | null
     ) => void;
 }
 
@@ -42,6 +42,7 @@ export default function MediaPicker({
                 onOpenChange={setOpen}
                 onSelect={(media) => {
                     onChange(media);
+                    setOpen(false);
                 }}
             />
         </>

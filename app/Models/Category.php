@@ -2,39 +2,91 @@
 
 namespace App\Models;
 
+use App\Concerns\HasDynamicFields;
+use App\Concerns\HasSlug;
+use Database\Factories\CategoryFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Spatie\Sluggable\HasSlug;
-use Spatie\Sluggable\SlugOptions;
-use Spatie\Translatable\HasTranslations;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Staudenmeir\LaravelAdjacencyList\Eloquent\HasRecursiveRelationships;
+use Staudenmeir\LaravelAdjacencyList\Eloquent\Relations\HasManyOfDescendants;
 
-class Category extends Model
+class Category extends Model implements HasMedia
 {
-    use HasFactory, HasSlug, HasTranslations;
+    use HasDynamicFields;
 
-    protected $fillable = ['name', 'slug', 'parent_id'];
+    /** @use HasFactory<CategoryFactory> */
+    use HasFactory;
+    use HasRecursiveRelationships;
+    use HasSlug;
+    use InteractsWithMedia;
 
-    public $translatable = ['name'];
+    protected $guarded = [];
 
-    public function getSlugOptions(): SlugOptions
+    /**
+     * @return array<array-key, array<string>>
+     */
+    public function getCustomPaths(): array
     {
-        return SlugOptions::create()
-            ->generateSlugsFrom('name')
-            ->saveSlugsTo('slug');
+        return [
+            [
+                'name' => 'slug_path',
+                'column' => 'slug',
+                'separator' => '/',
+            ],
+        ];
     }
 
-    public function parent()
+    public function updateStatus(bool $status = true): void
     {
-        return $this->belongsTo(Category::class, 'parent_id');
+        $this->update(['is_enabled' => $status]);
     }
 
-    public function children()
+    public function getLabelOptionName(): string
     {
-        return $this->hasMany(Category::class, 'parent_id');
+        return $this->parent
+            ? $this->parent->getLabelOptionName().' / '.$this->name
+            : $this->name;
     }
 
-    public function products()
+    /**
+     * @param  Builder<Category>  $query
+     * @return Builder<Category>
+     */
+    public function scopeEnabled(Builder $query): Builder
     {
-        return $this->hasMany(Product::class);
+        return $query->where('is_enabled', true);
+    }
+
+    /**
+     * @return HasManyOfDescendants<static, $this>
+     */
+    public function descendantCategories(): HasManyOfDescendants
+    {
+        return $this->hasManyOfDescendants(static::class, 'parent_id');
+    }
+
+    /**
+     * @return MorphToMany<Product, $this>
+     */
+    public function products(): MorphToMany
+    {
+        return $this->morphToMany(Product::class, 'productable', 'product_has_relations');
+    }
+
+    protected static function newFactory(): CategoryFactory
+    {
+        return CategoryFactory::new();
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_enabled' => 'boolean',
+            'metadata' => 'array',
+        ];
     }
 }

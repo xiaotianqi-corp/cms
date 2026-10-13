@@ -1,10 +1,9 @@
-import { Form } from '@inertiajs/react';
-import { ShieldCheck } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import Heading from '@/components/heading';
+import { router } from '@inertiajs/react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
+import ChangePasswordDialog from '@/components/settings/change-password-dialog';
+import TwoFactorSetupPanel from '@/components/settings/two-factor-setup-panel';
 import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
-import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
-import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import { disable, enable } from '@/routes/two-factor';
 
@@ -14,112 +13,92 @@ export type Props = {
     twoFactorEnabled?: boolean;
 };
 
-export default function ManageTwoFactor(props: Props) {
+export default function ManageTwoFactor(props: Props & { after?: ReactNode }) {
     const requiresConfirmation = props.requiresConfirmation ?? false;
     const twoFactorEnabled = props.twoFactorEnabled ?? false;
 
     const {
-        qrCodeSvg,
-        hasSetupData,
-        manualSetupKey,
-        clearSetupData,
-        clearTwoFactorAuthData,
-        fetchSetupData,
-        recoveryCodesList,
-        fetchRecoveryCodes,
-        errors,
+        qrCodeSvg, manualSetupKey, clearSetupData, clearTwoFactorAuthData,
+        fetchSetupData, recoveryCodesList, fetchRecoveryCodes, errors,
     } = useTwoFactorAuth();
-    const [showSetupModal, setShowSetupModal] = useState<boolean>(false);
+
+    const [verifyFor, setVerifyFor] = useState<'enable' | 'disable' | null>(null);
+    const [showPanel, setShowPanel] = useState(false);
+    const [busy, setBusy] = useState(false);
     const prevTwoFactorEnabled = useRef(twoFactorEnabled);
 
     useEffect(() => {
-        if (prevTwoFactorEnabled.current && !twoFactorEnabled) {
-            clearTwoFactorAuthData();
-        }
-
+        if (prevTwoFactorEnabled.current && !twoFactorEnabled) clearTwoFactorAuthData();
         prevTwoFactorEnabled.current = twoFactorEnabled;
     }, [twoFactorEnabled, clearTwoFactorAuthData]);
 
-    if (!(props.canManageTwoFactor ?? false)) {
-        return null;
+    if (!(props.canManageTwoFactor ?? false)) return <>{props.after}</>;
+
+    function closePanel() {
+        setShowPanel(false);
+        clearSetupData();
+    }
+
+    function run(action: 'enable' | 'disable') {
+        setBusy(true);
+        if (action === 'enable') {
+            router.post(enable.url(), {}, {
+                preserveScroll: true,
+                onSuccess: () => setShowPanel(true),
+                onFinish: () => setBusy(false),
+            });
+        } else {
+            router.delete(disable.url(), {
+                preserveScroll: true,
+                onSuccess: closePanel,
+                onFinish: () => setBusy(false),
+            });
+        }
+    }
+
+    function toggle(next: boolean) {
+        if (next) return setVerifyFor('enable');
+        // Cancelar una configuración a medias no requiere verificar de nuevo.
+        if (showPanel && !twoFactorEnabled) return closePanel();
+        setVerifyFor('disable');
     }
 
     return (
-        <div className="space-y-6">
-            <Heading
-                variant="small"
-                title="Two-factor authentication"
-                description="Manage your two-factor authentication settings"
-            />
-            {twoFactorEnabled ? (
-                <div className="flex flex-col items-start justify-start space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                        You will be prompted for a secure, random pin during
-                        login, which you can retrieve from the TOTP-supported
-                        application on your phone.
-                    </p>
+        <div className="space-y-4">
+            <label className="flex w-fit cursor-pointer items-center gap-3 text-sm">
+                <Switch checked={twoFactorEnabled || showPanel} disabled={busy} onCheckedChange={toggle} aria-label="Authenticator app" />
+                Authenticator app
+            </label>
 
-                    <div className="relative inline">
-                        <Form {...disable.form()}>
-                            {({ processing }) => (
-                                <Button
-                                    variant="destructive"
-                                    type="submit"
-                                    disabled={processing}
-                                >
-                                    Disable 2FA
-                                </Button>
-                            )}
-                        </Form>
-                    </div>
+            {props.after}
 
-                    <TwoFactorRecoveryCodes
-                        recoveryCodesList={recoveryCodesList}
-                        fetchRecoveryCodes={fetchRecoveryCodes}
+            {showPanel && (
+                <div className="pt-2">
+                    <TwoFactorSetupPanel
+                        qrCodeSvg={qrCodeSvg}
+                        manualSetupKey={manualSetupKey}
+                        requiresConfirmation={requiresConfirmation}
+                        twoFactorEnabled={twoFactorEnabled}
+                        fetchSetupData={fetchSetupData}
                         errors={errors}
+                        onClose={closePanel}
                     />
-                </div>
-            ) : (
-                <div className="flex flex-col items-start justify-start space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                        When you enable two-factor authentication, you will be
-                        prompted for a secure pin during login. This pin can be
-                        retrieved from a TOTP-supported application on your
-                        phone.
-                    </p>
-
-                    <div>
-                        {hasSetupData ? (
-                            <Button onClick={() => setShowSetupModal(true)}>
-                                <ShieldCheck />
-                                Continue setup
-                            </Button>
-                        ) : (
-                            <Form
-                                {...enable.form()}
-                                onSuccess={() => setShowSetupModal(true)}
-                            >
-                                {({ processing }) => (
-                                    <Button type="submit" disabled={processing}>
-                                        Enable 2FA
-                                    </Button>
-                                )}
-                            </Form>
-                        )}
-                    </div>
                 </div>
             )}
 
-            <TwoFactorSetupModal
-                isOpen={showSetupModal}
-                onClose={() => setShowSetupModal(false)}
-                requiresConfirmation={requiresConfirmation}
-                twoFactorEnabled={twoFactorEnabled}
-                qrCodeSvg={qrCodeSvg}
-                manualSetupKey={manualSetupKey}
-                clearSetupData={clearSetupData}
-                fetchSetupData={fetchSetupData}
-                errors={errors}
+            {twoFactorEnabled && !showPanel && (
+                <TwoFactorRecoveryCodes recoveryCodesList={recoveryCodesList} fetchRecoveryCodes={fetchRecoveryCodes} errors={errors} />
+            )}
+
+            <ChangePasswordDialog
+                open={verifyFor !== null}
+                onOpenChange={(v) => !v && setVerifyFor(null)}
+                title={verifyFor === 'disable' ? 'Confirm to turn off two-step verification' : 'Verify to turn on two-step verification'}
+                onVerified={() => {
+                    const action = verifyFor;
+                    setVerifyFor(null);
+                    if (action) requestAnimationFrame(() => run(action));
+                }}
             />
         </div>
     );

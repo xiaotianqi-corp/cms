@@ -1,3 +1,4 @@
+import { IconSvgElement } from '@hugeicons/react';
 import type { InertiaLinkProps } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -12,7 +13,9 @@ export type BreadcrumbItem = {
 
 export type NavItem = {
     title: string;
-    href: LinkHref;
-    icon?: LucideIcon | null;
+    icon?: IconSvgElement | null;
     isActive?: boolean;
-};
+} & (
+        | { href: LinkHref; onClick?: never }
+        | { onClick: () => void; href?: never }
+    );

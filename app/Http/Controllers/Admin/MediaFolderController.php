@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 
 class MediaFolderController extends Controller
 {
-    public function index()
+    public function index(string $current_team)
     {
         return MediaFolder::query()
             ->with('children')
@@ -19,7 +19,8 @@ class MediaFolderController extends Controller
     }
 
     public function store(
-        Request $request
+        Request $request,
+        string $current_team
     ) {
 
         $request->validate([
@@ -47,6 +48,7 @@ class MediaFolderController extends Controller
 
     public function update(
         Request $request,
+        string $current_team,
         MediaFolder $folder
     ) {
 
@@ -70,6 +72,7 @@ class MediaFolderController extends Controller
     }
 
     public function destroy(
+        string $current_team,
         MediaFolder $folder
     ) {
         $folder->delete();

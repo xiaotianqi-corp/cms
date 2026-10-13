@@ -12,13 +12,19 @@ class ContentSection extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['field_group_id', 'sectionable_id', 'sectionable_type', 'order'];
+    protected $fillable = [
+        'cpt_id',
+        'cpt_entry_id',
+        'sectionable_id',
+        'sectionable_type',
+        'order',
+    ];
 
     protected $casts = ['order' => 'integer'];
 
-    public function fieldGroup(): BelongsTo
+    public function cpt(): BelongsTo
     {
-        return $this->belongsTo(FieldGroup::class);
+        return $this->belongsTo(Cpt::class);
     }
 
     public function sectionable(): MorphTo
@@ -31,54 +37,77 @@ class ContentSection extends Model
         return $this->hasMany(ContentSectionValue::class);
     }
 
-    /**
-     * Devuelve los valores de la sección como array estructurado.
-     * Para campos normales: ['field_name' => value]
-     * Para repeaters: ['field_name' => [['sub_field' => value, ...], ...]]
-     */
+    public function entry(): BelongsTo
+    {
+        return $this->belongsTo(CptEntry::class, 'cpt_entry_id');
+    }
+
     public function toStructuredData(): array
     {
-        $this->load(['fieldGroup.allFieldDefinitions', 'values']);
+        return $this->toStructuredDataWithoutReference();
+    }
 
-        $fields = $this->fieldGroup->allFieldDefinitions;
-        $values = $this->values->groupBy('field_definition_id');
-        $result = [];
+    private function toStructuredDataWithoutReference(): array
+    {
+        $this->loadMissing([
+            'cpt.allCptDefinitions',
+            'values',
+        ]);
 
-        // Campos raíz (no hijos de repeater)
-        $rootFields = $fields->whereNull('parent_id');
+        $fields = $this->cpt->allCptDefinitions;
+        $values = $this->values->groupBy('cpt_definition_id');
 
-        foreach ($rootFields as $field) {
+        $result = [
+            'cpt_entry_id' => $this->cpt_entry_id,
+        ];
+
+        foreach ($fields->whereNull('parent_id') as $field) {
+
             if ($field->isRepeater()) {
-                $subFields = $fields->where('parent_id', $field->id);
-                $rows = [];
 
-                // Determinar cuántas filas hay mirando cualquier subfield
-                $firstSub = $subFields->first();
-                $rowCount = $firstSub
-                    ? ($values->get($firstSub->id)?->max('row_index') ?? -1) + 1
+                $rows = [];
+                $subs = $fields->where('parent_id', $field->id);
+
+                $first = $subs->first();
+
+                $count = $first
+                    ? ($values->get($first->id)?->max('row_index') ?? -1) + 1
                     : 0;
 
-                for ($i = 0; $i < $rowCount; $i++) {
+                for ($i = 0; $i < $count; $i++) {
+
                     $row = [];
-                    foreach ($subFields as $subField) {
-                        $val = $values->get($subField->id)
-                                ?->firstWhere('row_index', $i);
-                        $row[$subField->name] = $val ? $this->castValue($val->value, $subField) : null;
+
+                    foreach ($subs as $sub) {
+
+                        $val = $values
+                            ->get($sub->id)
+                            ?->firstWhere('row_index', $i);
+
+                        $row[$sub->name] = $val
+                            ? $this->castValue($val->value, $sub)
+                            : null;
                     }
+
                     $rows[] = $row;
                 }
 
                 $result[$field->name] = $rows;
+
             } else {
+
                 $val = $values->get($field->id)?->first();
-                $result[$field->name] = $val ? $this->castValue($val->value, $field) : null;
+
+                $result[$field->name] = $val
+                    ? $this->castValue($val->value, $field)
+                    : null;
             }
         }
 
         return $result;
     }
 
-    private function castValue(mixed $raw, FieldDefinition $field): mixed
+    private function castValue(mixed $raw, CptDefinition $field): mixed
     {
         return match ($field->type) {
             'number' => is_numeric($raw) ? (float) $raw : null,

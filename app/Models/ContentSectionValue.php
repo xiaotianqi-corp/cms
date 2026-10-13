@@ -10,7 +10,7 @@ class ContentSectionValue extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['content_section_id', 'field_definition_id', 'row_index', 'value'];
+    protected $fillable = ['content_section_id', 'cpt_definition_id', 'row_index', 'value'];
 
     protected $casts = ['row_index' => 'integer'];
 
@@ -19,8 +19,8 @@ class ContentSectionValue extends Model
         return $this->belongsTo(ContentSection::class);
     }
 
-    public function fieldDefinition(): BelongsTo
+    public function cptDefinition(): BelongsTo
     {
-        return $this->belongsTo(FieldDefinition::class);
+        return $this->belongsTo(CptDefinition::class);
     }
 }

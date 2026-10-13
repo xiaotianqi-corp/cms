@@ -5,6 +5,9 @@ export type Team = {
     name: string;
     slug: string;
     isPersonal: boolean;
+    step: 'business' | 'plan' | 'payment';
+    business_type: string | null;
+    project_type: string | null;
     role?: TeamRole;
     roleLabel?: string;
     isCurrent?: boolean;

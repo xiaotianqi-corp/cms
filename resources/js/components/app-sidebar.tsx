@@ -1,9 +1,4 @@
 import { Link, usePage } from '@inertiajs/react';
-import {
-    BookOpen, FolderGit2, LayoutGrid, FileText, ShoppingBag,
-    CreditCard, Palette, Puzzle, Settings, BarChart3, Sparkles,
-    ChevronRight, Languages, Database, Globe,
-} from 'lucide-react';
 import { useState } from 'react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -13,228 +8,331 @@ import {
     Sidebar, SidebarContent, SidebarFooter, SidebarHeader,
     SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { cn, hrefToString } from '@/lib/utils';
+import { hrefToString } from '@/lib/utils';
 import { dashboard } from '@/routes';
-import type { IsActiveFn, LinkHref, NavItem } from '@/types';
+import { index as analyticsIndex } from '@/routes/admin/analytics';
+import { index as postsIndex } from '@/routes/admin/posts';
+import { index as pagesIndex } from '@/routes/admin/pages';
+import { index as legalsIndex } from '@/routes/admin/legals';
+import { index as languagesIndex } from '@/routes/admin/languages';
+import { index as productsIndex } from '@/routes/admin/products';
+import { index as ordersIndex } from '@/routes/admin/orders';
+import { index as discountsIndex } from '@/routes/admin/discounts';
+import { index as reviewsIndex } from '@/routes/admin/reviews';
+import { index as categoriesIndex } from '@/routes/admin/categories';
+import { index as brandsIndex } from '@/routes/admin/brands';
+import { index as suppliersIndex } from '@/routes/admin/suppliers';
+import { index as collectionsIndex } from '@/routes/admin/collections';
+import { index as attributesIndex } from '@/routes/admin/attributes';
+import { index as carriersIndex } from '@/routes/admin/carriers';
+import { index as zonesIndex } from '@/routes/admin/zones';
+import { index as taxZonesIndex } from '@/routes/admin/tax-zones';
+import { index as paymentMethodsIndex } from '@/routes/admin/payment-methods';
+import { index as countriesIndex } from '@/routes/admin/countries';
+import { index as currenciesIndex } from '@/routes/admin/currencies';
+import { index as pluginsIndex } from '@/routes/admin/plugins';
+import { index as aiInsightsIndex } from '@/routes/admin/ai-insights';
+import { index as cptIndex } from '@/routes/admin/cpt/entries';
+import { index as acfIndex } from '@/routes/admin/acf';
+import { index as settingsIndex } from '@/routes/admin/settings';
+import { index as indexUsers } from '@/routes/admin/users';
+import { index as indexRoles } from '@/routes/admin/roles';
+import { index as indexPermissions } from '@/routes/admin/permissions';
+import type { LinkHref, NavItem, Team } from '@/types';
+import SidebarTriggerCustom from './ui/sidebar-trigger-custom';
+import { ThemeSwitcher } from './theme-switcher';
+import { IconSvgElement } from '@hugeicons/react';
+import {
+    AiCloudIcon, Analytics02Icon, ApiIcon, Award01Icon, BookOpen02Icon,
+    Building03Icon, CreditCardIcon, Coins01Icon, DashboardSpeed02Icon,
+    DatabaseIcon, DeliveryTruck01Icon, DiscountTag01Icon, File01Icon,
+    File02Icon, Flag01Icon, FolderGitTwoIcon, FolderLibraryIcon,
+    GridViewIcon, Globe02Icon, Invoice03Icon, LanguageSkillIcon,
+    Layers01Icon, LegalDocument01Icon, MapsLocation01Icon, ProductLoadingIcon,
+    PuzzleIcon, Settings02Icon, Settings05Icon, ShoppingBag01Icon,
+    SlidersVerticalIcon, StarIcon, Store03Icon, TaxesIcon, UserLock01Icon,
+    UserMultipleIcon, UserShield01Icon,
+} from '@hugeicons/core-free-icons';
+import NavGroupItem from './sidebar/nav-group-item';
+import SettingsSidebar, { isSettingsPath } from '@/components/settings/settings-sidebar';
+import { useEntitlements } from '@/hooks/use-entitlements';
+
 
 interface NavGroup {
     title: string;
-    icon: React.ElementType;
+    icon: IconSvgElement;
     href?: LinkHref;
+    onClick?: () => void;
     children?: NavItem[];
 }
 
 export function AppSidebar() {
     const page = usePage();
-    const currentPath = new URL(page.url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost').pathname;
-    const dashboardUrl = page.props.currentTeam
-        ? dashboard(page.props.currentTeam.slug)
+
+    const { currentTeam, standaloneModules = [] } = page.props as {
+        currentTeam?: Team | null;
+        standaloneModules?: Array<{
+            id: number; title: string; slug: string; label: string; icon: string;
+        }>;
+    };
+
+    const teamSlug = (currentTeam as Team)!.slug;
+    const { auth } = page.props as any;
+    const userRoles = auth?.user?.roles?.map((r: any) => (typeof r === 'string' ? r : r?.name)) || [];
+    const userPermissions = auth?.user?.permissions || [];
+    const isOwner = userRoles.includes('Owner');
+    const hasPermission = (permission: string) => isOwner || userPermissions.includes(permission);
+    const navPermissionMap: Record<string, string> = {
+        Posts: 'view_any_post',
+        Pages: 'view_any_page',
+        'Field Groups': 'view_any_cpt',
+        Legals: 'view_any_legal',
+        Products: 'view_any_product',
+        Orders: 'view_any_order',
+        Discounts: 'view_any_discount',
+        Reviews: 'view_any_review',
+        Categories: 'view_any_category',
+        Brands: 'view_any_brand',
+        Suppliers: 'view_any_supplier',
+        Collections: 'view_any_collection',
+        Attributes: 'view_any_attribute',
+        Carriers: 'view_any_carrier',
+        Zones: 'view_any_zone',
+        'Tax Zones': 'view_any_tax_zone',
+        'Payment Methods': 'view_any_payment_method',
+        Countries: 'view_any_country',
+        Currencies: 'view_any_currency',
+        Plugins: 'view_any_plugin',
+        'AI Insights': 'view_any_ai_insight',
+        Analytics: 'view_any_analytics',
+        Settings: 'view_any_setting',
+        Users: 'view_any_user',
+        Roles: 'view_any_role',
+        Permissions: 'view_any_permission',
+    };
+
+    const canSeeNavItem = (title: string): boolean => {
+        if (title === 'Dashboard' || title === 'Preferences') return true;
+
+        const requiredModule = navModuleMap[title];
+        if (requiredModule && !hasModule(requiredModule)) return false;
+
+        if (userRoles.length === 0) return import.meta.env.DEV;
+
+        const permission = navPermissionMap[title];
+        if (!permission) return true;
+        return hasPermission(permission);
+    };
+
+    const currentPath = new URL(
+        page.url,
+        typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
+    ).pathname;
+    const dashboardUrl = currentTeam
+        ? dashboard(currentTeam.slug)
         : '/';
+
+    const { hasModule } = useEntitlements();
+
+    const navModuleMap: Record<string, string> = {
+        // CMS
+        Content: 'cms', Posts: 'cms', Pages: 'cms', 'Field Groups': 'cms', Legals: 'cms',
+        Languages: 'multilanguage',
+        // Ecommerce
+        Commerce: 'ecommerce', Catalog: 'ecommerce', 'Store Setup': 'ecommerce',
+        Products: 'ecommerce', Orders: 'ecommerce', Discounts: 'ecommerce', Reviews: 'ecommerce',
+        Categories: 'ecommerce', Brands: 'ecommerce', Suppliers: 'ecommerce',
+        Collections: 'ecommerce', Attributes: 'ecommerce', Carriers: 'ecommerce',
+        Zones: 'ecommerce', 'Tax Zones': 'ecommerce', 'Payment Methods': 'ecommerce',
+        Countries: 'ecommerce', Currencies: 'ecommerce',
+        // Otros
+        'AI Insights': 'ai_insights', Analytics: 'analytics',
+    };
+
+    if (isSettingsPath(currentPath, teamSlug)) {
+        return <SettingsSidebar teamSlug={teamSlug} dashboardUrl={dashboardUrl} />;
+    }
 
     const isActive = (href: LinkHref) => {
         const url = hrefToString(href);
-
-        return currentPath === url ||
-            currentPath.startsWith(url + '/');
+        if (!url) return false;
+        return currentPath === url || currentPath.startsWith(url + '/');
     };
-    const isGroupActive = (group: NavGroup) => {
-        if (group.href && isActive(group.href)) {
-            return true;
-        }
 
-        return group.children?.some(
-            child => isActive(child.href)
+    const isGroupActive = (group: NavGroup) => {
+        if (group.href && isActive(group.href)) return true;
+        return group.children?.some(child =>
+            'href' in child && child.href ? isActive(child.href) : false
         ) ?? false;
     };
 
-    // Groups with submenus
+    const iconMap = {
+        Layers: Layers01Icon, Globe: Globe02Icon, Database: DatabaseIcon,
+        FileText: File01Icon, ShoppingBag: ShoppingBag01Icon,
+    };
+
+    const dynamicModules: NavGroup[] = hasModule('cms')
+        ? standaloneModules.map((module) => ({
+            title: module.label,
+            icon: iconMap[module.icon as keyof typeof iconMap] ?? Layers01Icon,
+            href: cptIndex([teamSlug, module.slug]),
+        }))
+        : [];
+
     const navGroups: NavGroup[] = [
-        {
-            title: 'Dashboard',
-            icon: LayoutGrid,
-            href: dashboardUrl,
-        },
+        { title: 'Dashboard', icon: DashboardSpeed02Icon, href: dashboardUrl },
         {
             title: 'Content',
-            icon: FileText,
+            icon: File02Icon,
             children: [
-                { title: 'Posts', href: '/admin/posts', icon: BookOpen },
-                { title: 'Pages', href: '/admin/pages', icon: FileText },
-                { title: 'Field Groups', href: '/admin/field-groups', icon: Database },
+                { title: 'Posts', href: postsIndex(teamSlug), icon: BookOpen02Icon },
+                { title: 'Pages', href: pagesIndex(teamSlug), icon: File01Icon },
+                { title: 'Field Groups', href: acfIndex(teamSlug), icon: Layers01Icon },
+                { title: 'Legals', href: legalsIndex(teamSlug), icon: LegalDocument01Icon },
+                { title: 'Languages', href: languagesIndex(teamSlug), icon: LanguageSkillIcon },
             ],
         },
+        ...dynamicModules,
         {
             title: 'Commerce',
-            icon: ShoppingBag,
+            icon: Store03Icon,
             children: [
-                { title: 'Products', href: '/admin/products', icon: ShoppingBag },
-                { title: 'Orders', href: '/admin/orders', icon: CreditCard },
+                { title: 'Products', href: productsIndex(teamSlug), icon: ProductLoadingIcon },
+                { title: 'Orders', href: ordersIndex(teamSlug), icon: Invoice03Icon },
+                { title: 'Discounts', href: discountsIndex(teamSlug), icon: DiscountTag01Icon },
+                { title: 'Reviews', href: reviewsIndex(teamSlug), icon: StarIcon },
             ],
         },
         {
-            title: 'Appearance',
-            icon: Palette,
+            title: 'Catalog',
+            icon: GridViewIcon,
             children: [
-                { title: 'Themes', href: '/admin/themes', icon: Palette },
-                { title: 'Plugins', href: '/admin/plugins', icon: Puzzle },
+                { title: 'Categories', href: categoriesIndex(teamSlug), icon: GridViewIcon },
+                { title: 'Brands', href: brandsIndex(teamSlug), icon: Award01Icon },
+                { title: 'Suppliers', href: suppliersIndex(teamSlug), icon: Building03Icon },
+                { title: 'Collections', href: collectionsIndex(teamSlug), icon: FolderLibraryIcon },
+                { title: 'Attributes', href: attributesIndex(teamSlug), icon: SlidersVerticalIcon },
             ],
         },
         {
-            title: 'AI Insights',
-            icon: Sparkles,
-            href: '/admin/ai-insights',
+            title: 'Store Setup',
+            icon: DeliveryTruck01Icon,
+            children: [
+                { title: 'Carriers', href: carriersIndex(teamSlug), icon: DeliveryTruck01Icon },
+                { title: 'Zones', href: zonesIndex(teamSlug), icon: MapsLocation01Icon },
+                { title: 'Tax Zones', href: taxZonesIndex(teamSlug), icon: TaxesIcon },
+                { title: 'Payment Methods', href: paymentMethodsIndex(teamSlug), icon: CreditCardIcon },
+                { title: 'Countries', href: countriesIndex(teamSlug), icon: Flag01Icon },
+                { title: 'Currencies', href: currenciesIndex(teamSlug), icon: Coins01Icon },
+            ],
         },
         {
-            title: 'Analytics',
-            icon: BarChart3,
-            href: '/admin/analytics',
+            title: 'Extensions',
+            icon: PuzzleIcon,
+            children: [
+                { title: 'Plugins', href: pluginsIndex(teamSlug), icon: PuzzleIcon },
+            ],
         },
+        { title: 'AI Insights', icon: AiCloudIcon, href: aiInsightsIndex(teamSlug) },
+        { title: 'Analytics', icon: Analytics02Icon, href: analyticsIndex(teamSlug) },
         {
             title: 'Settings',
-            icon: Settings,
-            children: [
-                { title: 'General', href: '/admin/settings', icon: Settings },
-                { title: 'Languages', href: '/admin/languages', icon: Languages },
-            ],
+            icon: Settings02Icon,
+            href: settingsIndex(teamSlug),
+        },
+        {
+            title: 'Users',
+            icon: UserMultipleIcon,
+            href: indexUsers(teamSlug),
+        },
+        {
+            title: 'Roles',
+            icon: UserShield01Icon,
+            href: indexRoles(teamSlug),
+        },
+        {
+            title: 'Permissions',
+            icon: UserLock01Icon,
+            href: indexPermissions(teamSlug),
         },
     ];
 
+    const filteredNavGroups: NavGroup[] = navGroups
+        .filter((group) => canSeeNavItem(group.title))
+        .map((group) => {
+            if (!group.children) return group;
+            const filteredChildren = group.children.filter((child) =>
+                'title' in child ? canSeeNavItem(child.title) : true
+            );
+            return { ...group, children: filteredChildren };
+        })
+        .filter((group) => {
+            // Si un grupo padre solo existía para agrupar children y quedó vacío, lo ocultamos
+            if (group.children) return group.children.length > 0;
+            return true;
+        });
+
     const footerNavItems: NavItem[] = [
-        { title: 'Repository', href: 'https://github.com/laravel/react-starter-kit', icon: FolderGit2 },
-        { title: 'Documentation', href: 'https://laravel.com/docs/starter-kits#react', icon: BookOpen },
+        { title: 'Repository', href: 'https://github.com/laravel/react-starter-kit', icon: FolderGitTwoIcon },
+        { title: 'Documentation', href: 'https://laravel.com/docs/starter-kits#react', icon: ApiIcon },
     ];
 
     return (
-        <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboardUrl} prefetch>
-                                <AppLogo />
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <TeamSwitcher />
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarHeader>
+        <>
+            <Sidebar collapsible="icon" variant="inset">
+                <SidebarHeader>
+                    <SidebarMenu>
+                        <SidebarMenuItem className="group/logo relative flex items-center justify-center">
+                            <SidebarMenuButton
+                                size="lg"
+                                asChild
+                                className="relative overflow-hidden hover:bg-transparent"
+                            >
+                                <div className="flex justify-between w-full">
+                                    <Link href={dashboardUrl}>
+                                        <AppLogo />
+                                    </Link>
+                                </div>
+                            </SidebarMenuButton>
+                            <SidebarTriggerCustom className="
+                                absolute right-0 z-20 size-8
+                                rounded-md
+                                bg-sidebar-primary
+                                text-sidebar-primary-foreground
+                                group-data-[collapsible=icon]:rounded-full
+                                group-hover/logo:group-data-[collapsible=icon]:rounded-full
+                                group-hover/logo:group-data-[collapsible=icon]:right-0
+                            " />
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <TeamSwitcher />
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarHeader>
 
-            <SidebarContent>
-                <div className="px-2 py-0">
-                    <p className="px-2 text-xs font-medium text-neutral-500 mb-1 uppercase tracking-wider">Platform</p>
-                    <ul className="flex w-full min-w-0 flex-col gap-0.5">
-                        {navGroups.map((group) => (
-                            <NavGroupItem
-                                key={group.title}
-                                group={group}
-                                isActive={isActive}
-                                isGroupActive={isGroupActive(group)}
-                            />
-                        ))}
-                    </ul>
-                </div>
-            </SidebarContent>
+                <SidebarContent>
+                    <div className="px-2 py-0">
+                        <ul className="flex w-full min-w-0 flex-col gap-0.5">
+                            {filteredNavGroups.map((group) => (
+                                <NavGroupItem
+                                    key={group.title}
+                                    group={group as any}
+                                    isActive={isActive}
+                                    isGroupActive={isGroupActive(group)}
+                                />
+                            ))}
+                        </ul>
+                        <ThemeSwitcher />
+                    </div>
+                </SidebarContent>
 
-            <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
-                <NavUser />
-            </SidebarFooter>
-        </Sidebar>
-    );
-}
-
-function NavGroupItem({
-    group,
-    isActive,
-    isGroupActive,
-}: {
-    group: NavGroup;
-    isActive: IsActiveFn;
-    isGroupActive: boolean;
-}) {
-    const [open, setOpen] = useState(isGroupActive);
-    const hasChildren = Boolean(group.children?.length);
-    const Icon = group.icon;
-
-    // Simple link (no children)
-    if (!hasChildren && group.href) {
-        return (
-            <li className="relative group/menu-item">
-                <Link
-                    href={group.href}
-                    prefetch
-                    className={cn(
-                        'flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm transition-colors',
-                        'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                        isActive(group.href)
-                            ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                            : 'text-sidebar-foreground',
-                        // collapsed: icon only
-                        'group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-2',
-                    )}
-                >
-                    <Icon className="size-4 shrink-0" />
-                    <span className="truncate group-data-[collapsible=icon]:hidden">{group.title}</span>
-                </Link>
-            </li>
-        );
-    }
-
-    // Group with children (collapsible)
-    return (
-        <li className="relative">
-            <button
-                type="button"
-                onClick={() => setOpen(o => !o)}
-                className={cn(
-                    'flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm transition-colors',
-                    'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                    isGroupActive
-                        ? 'text-sidebar-accent-foreground font-medium'
-                        : 'text-sidebar-foreground',
-                    'group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-2',
-                )}
-            >
-                <Icon className="size-4 shrink-0" />
-                <span className="flex-1 truncate group-data-[collapsible=icon]:hidden">{group.title}</span>
-                <ChevronRight
-                    className={cn(
-                        'size-3.5 transition-transform group-data-[collapsible=icon]:hidden',
-                        open && 'rotate-90',
-                    )}
-                />
-            </button>
-
-            {open && (
-                <ul className="ml-4 mt-0.5 border-l border-sidebar-border pl-3 flex flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
-                    {group.children?.map((child) => {
-                        const childHref = child.href;
-                        const ChildIcon = child.icon;
-                        return (
-                            <li key={hrefToString(childHref)}>
-                                <Link
-                                    href={childHref}
-                                    prefetch
-                                    className={cn(
-                                        'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
-                                        'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                                        isActive(childHref)
-                                            ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                                            : 'text-sidebar-foreground/80',
-                                    )}
-                                >
-                                    {ChildIcon && <ChildIcon className="size-3.5 shrink-0" />}
-                                    <span className="truncate">{child.title}</span>
-                                </Link>
-                            </li>
-                        );
-                    })}
-                </ul>
-            )}
-        </li>
+                <SidebarFooter>
+                    <NavFooter items={footerNavItems} className="mt-auto" />
+                    <NavUser />
+                </SidebarFooter>
+            </Sidebar>
+        </>
     );
 }
